@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django_userforeignkey',
     # Own apps
     'applications.users',
+    'applications.core'
 ]
 
 MIDDLEWARE = [
