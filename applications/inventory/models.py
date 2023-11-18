@@ -1,7 +1,13 @@
+import secrets
+import string
+
 from django.core.validators import MinValueValidator
 from django.db import models
 
 from applications.core.models import ModelClass
+from applications.supply.models import SupplyOrderDetail
+
+from .choices import INVENTORY_STATE
 
 
 # Create your models here.
@@ -27,16 +33,22 @@ class Category(ModelClass):
         Stores the hierarchical path of the category, not editable via admin.
     """
 
+    code = models.CharField(max_length=3, unique=True, verbose_name='Código')
     name = models.CharField(max_length=60, unique=True, verbose_name='Nombre')
     description = models.TextField(null=True, blank=True, verbose_name='Descripción')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, verbose_name='Categoría padre')
     path = models.CharField(max_length=255, editable=False, verbose_name='Path')
 
     def save(self, *args, **kwargs):
+        # Path
         if self.parent:
             self.path = f'{self.parent.path}/{self.name}'
         else:
             self.path = self.name
+
+        # Code
+        if self.code:
+            self.code = self.code.upper()
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -205,3 +217,41 @@ class Item(ModelClass):
         verbose_name = 'Item'
         verbose_name_plural = 'Items'
         ordering = ['product', 'size', 'color', '-price_real']
+
+
+class Inventory(ModelClass):
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, verbose_name='Item')
+    supply_order_detail = models.ForeignKey(
+        SupplyOrderDetail, on_delete=models.CASCADE, verbose_name='Detalle de Orden de Compra'
+    )
+    batch_code = models.CharField(max_length=7, unique=True, editable=False, verbose_name='Código de Lote')
+    entries = models.SmallIntegerField(editable=False, verbose_name='Entradas')
+    exits = models.SmallIntegerField(editable=False, default=0, verbose_name='Salidas')
+    stock = models.SmallIntegerField(editable=False, verbose_name='Inventario Actual')
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Costo')
+    last_entry_at = models.DateTimeField(verbose_name='Última entrada')
+    last_exit_at = models.DateTimeField(verbose_name='Última salida')
+    state = models.CharField(max_length=3, choices=INVENTORY_STATE, default='RFS', verbose_name='Estado')
+
+    @property
+    def total_cost(self) -> float:
+        return self.stock * self.unit_cost
+
+    def _generate_batch_code(self):
+        first_part = self.item.product.category.code
+        second_part = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(3))
+        return f'{first_part}-{second_part}'.upper()
+
+    def save(self, *args, **kwargs):
+        if not self.batch_code:
+            # Genera un batch_code único
+            batch_code = self._generate_batch_code()
+            while Inventory.objects.filter(batch_code=batch_code).exists():
+                batch_code = self._generate_batch_code()
+            self.batch_code = batch_code
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = 'Inventario'
+        verbose_name_plural = 'Inventarios'
+        ordering = ['item', 'last_entry_at', 'last_exit_at', '-unit_cost']
