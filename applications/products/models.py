@@ -1,7 +1,7 @@
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from applications.core.models import ModelClass
+from applications.utils.models import ModelClass
 
 
 # Create your models here.
@@ -27,16 +27,22 @@ class Category(ModelClass):
         Stores the hierarchical path of the category, not editable via admin.
     """
 
+    code = models.CharField(max_length=3, unique=True, verbose_name='Código')
     name = models.CharField(max_length=60, unique=True, verbose_name='Nombre')
     description = models.TextField(null=True, blank=True, verbose_name='Descripción')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, verbose_name='Categoría padre')
     path = models.CharField(max_length=255, editable=False, verbose_name='Path')
 
     def save(self, *args, **kwargs):
+        # Path
         if self.parent:
             self.path = f'{self.parent.path}/{self.name}'
         else:
             self.path = self.name
+
+        # Code
+        if self.code:
+            self.code = self.code.upper()
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
