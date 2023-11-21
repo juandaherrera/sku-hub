@@ -15,7 +15,7 @@ import os
 from dotenv import load_dotenv
 from unipath import Path
 
-version = '0.2.0'
+version = '0.3.0'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).ancestor(3)
@@ -42,8 +42,7 @@ INSTALLED_APPS = [
     'django_userforeignkey',
     # Own apps
     'applications.users',
-    'applications.core',
-    'applications.inventory',
+    'applications.products',
     'applications.supply',
 ]
 
