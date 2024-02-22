@@ -81,9 +81,9 @@ class Inventory(ModelClass):
     entries = models.SmallIntegerField(editable=False, verbose_name='Entradas')
     exits = models.SmallIntegerField(editable=False, default=0, verbose_name='Salidas')
     stock = models.SmallIntegerField(editable=False, verbose_name='Inventario Actual')
-    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Costo')
-    last_entry_at = models.DateTimeField(verbose_name='Última entrada')
-    last_exit_at = models.DateTimeField(verbose_name='Última salida')
+    unit_cost = models.DecimalField(editable=False, max_digits=12, decimal_places=2, verbose_name='Costo')
+    last_entry_at = models.DateTimeField(editable=False, verbose_name='Última entrada')
+    last_exit_at = models.DateTimeField(editable=False, verbose_name='Última salida')
     state = models.CharField(max_length=3, choices=INVENTORY_STATE, default='RFS', verbose_name='Estado')
 
     @property
